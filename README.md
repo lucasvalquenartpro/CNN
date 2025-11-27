@@ -36,13 +36,3 @@ CNN/
 ├── .gitignore
 └── README.md
 ```
-
-## Format des Fichiers de Labels
-
-Les fichiers `train.txt` et `test.txt` contiennent :
-```
-chemin/image.jpg genre_prédit genre_réel
-```
-
-- **genre_prédit** : Label initial (potentiellement mal classifié)
-- **genre_réel** : Véritable label
