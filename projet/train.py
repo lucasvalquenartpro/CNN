@@ -38,7 +38,8 @@ def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
 
-def train_one_epoch(model, train_loader, criterion, optimizer, device):
+
+def train_one_epoch(model, train_loader, criterion, optimizer, device, fairness_weight=0.5):
     """Entraîne le modèle sur une epoch"""
     model.train()
 
@@ -52,9 +53,22 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
 
         optimizer.zero_grad()
         predictions = model(images, genres)
-        weights = torch.where(labels == 1, 4, 1.0)
+        weights = torch.where(labels == 1, 1.5, 1.0)
         loss_unreduced = nn.functional.smooth_l1_loss(predictions, labels, reduction='none')
-        loss = (loss_unreduced * weights).mean()
+        main_loss = (loss_unreduced * weights).mean()
+
+        # Pénalité de fairness : égaliser les erreurs entre genres
+        male_mask = (genres == 1)
+        female_mask = (genres == -1)
+
+        if male_mask.sum() > 0 and female_mask.sum() > 0:
+            male_loss = loss_unreduced[male_mask].mean()
+            female_loss = loss_unreduced[female_mask].mean()
+            fairness_penalty = torch.abs(male_loss - female_loss)
+            loss = main_loss + fairness_weight * fairness_penalty
+        else:
+            # Si un seul genre dans le batch, utiliser uniquement la loss principale
+            loss = main_loss
 
         loss.backward()
         optimizer.step()
